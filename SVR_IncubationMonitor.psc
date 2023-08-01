@@ -44,8 +44,9 @@ endEvent
 ;		Set up. We just Contracted Vamprisim
 ;***********************************************************
 Event OnMagicEffectApplyEx(ObjectReference akCaster, MagicEffect akEffect, Form akSource, bool abApplied)
-	if abApplied
+	if (abApplied && currDisease == None) 
         currDisease = akEffect
+        
 		RegisterForSingleUpdateGameTime(24);Interval we measure incubation period
 		svr_PlayerVampireQuest.setStage(10);Initial Day of contraction
 		;utility.wait(3);Allows Vanilla script to update itself before I register values from there to match mine.
@@ -53,8 +54,8 @@ Event OnMagicEffectApplyEx(ObjectReference akCaster, MagicEffect akEffect, Form 
 		svr_DaysPast.setValue(0.0);Double check for safety
 
         if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug"))
-            debug.notification("We have contracted Vamprisim")
-            debug.Notification("Now monitering: " + currDisease)
+            debug.notification("We have contracted Vampirism")
+            debug.Notification("Now monitering: " + currDisease.GetName())
             debug.notification("Transform date on Day : " + VampireChangeTimer)
         endIf
 	endIf
@@ -121,16 +122,26 @@ endEvent
 ;		Death while incubation
 ;***********************************************************
 Event OnEnterBleedout()
-    if svr_DeathAltCompat.getValue() == 0 && playerRef.HasMagicEffect(currDisease)
-        if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug"))
-            Debug.notification("We entered bleedout...")
-        endIf
+    int i = 0
+    While (i < svr_applicacbleDiseaseList.GetSize())
+        if (playerRef.HasMagicEffect(svr_applicacbleDiseaseList.GetAt(i) as MagicEffect))
+            if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug")) ;Debug Message
+                Debug.notification("We entered bleedout...")
+                debug.MessageBox("Found current disease... ")
+            endIf
 
-        UnRegisterForUpdateGameTime()
-        svr_PlayerVampireQuest.SetStage(100)
-    Elseif svr_DeathAltCompat.getValue() == 1 && PlayerRef.HasMagicEffect(currDisease)
-        RegisterForSingleUpdate(15)
-    endIf
+            if (!svr_DeathAltCompat.getValue()) ; If AltDeathCompat is not enabled
+                UnRegisterForUpdateGameTime()
+                svr_PlayerVampireQuest.SetStage(100)
+
+            else
+                RegisterForSingleUpdate(15)
+            endIf
+        endIf
+        
+        i += 1
+    EndWhile
+
 endEvent
 
 
@@ -141,7 +152,6 @@ Event OnUpdate()
     if PlayerIsVampire.getValue() == 0 && Game.GetPlayer().GetCombatState() == 0 && Game.IsMovementControlsEnabled() && Game.IsFightingControlsEnabled()
         int choice = svr_DeathAltConfirm.show()
         if choice == 0 ;Change meeeee
-            playerRef.RestoreAV("health", PlayerRef.GetAVMax("health")/4)
             PlayerVampireQuest.VampireChange(PlayerRef)
         elseIf choice == 1 ;Ask me again in a bit
             RegisterForSingleUpdate(10)
@@ -180,6 +190,7 @@ Event OnRaceSwitchComplete()
         UnregisterForUpdate();Not necessary.
         UnregisterForUpdateGameTime();Precaution. Not necessary.
         svr_PlayerVampireQuest.SetStage(200);Should reset quest here
+        currDisease = None
 
         if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug"))
             debug.MessageBox("Done with mod script")

@@ -7,23 +7,27 @@ Scriptname SVR_PlayerVampireQuestScript Extends Quest Hidden
 ReferenceAlias Property Alias_Player Auto
 ;END ALIAS PROPERTY
 
-;BEGIN ALIAS PROPERTY essentialPlayer
-;ALIAS PROPERTY TYPE ReferenceAlias
-ReferenceAlias Property Alias_essentialPlayer Auto
-;END ALIAS PROPERTY
-
 ;BEGIN ALIAS PROPERTY DeathLoc
 ;ALIAS PROPERTY TYPE ReferenceAlias
 ReferenceAlias Property Alias_DeathLoc Auto
 ;END ALIAS PROPERTY
 
-;BEGIN FRAGMENT Fragment_37
-Function Fragment_37()
+;BEGIN ALIAS PROPERTY essentialPlayer
+;ALIAS PROPERTY TYPE ReferenceAlias
+ReferenceAlias Property Alias_essentialPlayer Auto
+;END ALIAS PROPERTY
+
+;BEGIN FRAGMENT Fragment_32
+Function Fragment_32()
 ;BEGIN CODE
-playerRef.removespell(svr_damageHealthSpell)
+if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug"))
+     debug.notification("Final Day of Vampirism. Day 3: Last 6 hours")
+     debug.notification("stage 30 fragment")
+endIf
+
+svr_dayspast.setvalue(2)
 playerRef.removeSpell(svr_playerDebuffSpell)
-svr_daysPast.setValue(0)
-alias_essentialPlayer.clear()
+playerRef.addspell(svr_playerDebuffSpell, false)
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -31,37 +35,14 @@ EndFunction
 ;BEGIN FRAGMENT Fragment_33
 Function Fragment_33()
 ;BEGIN CODE
-;Last 6 hours to Night time of transformation
-;debug.notification("stage 40")
+if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug"))
+     debug.notification("Last 6 hours to Night time of transformation")
+     debug.notification("stage 40")
+endIf
 svr_dayspast.setValue(3)
 playerRef.addspell(svr_damageHealthSpell, false)
 playerRef.removeSpell(svr_playerDebuffSpell)
 playerRef.addspell(svr_playerDebuffSpell, false)
-;END CODE
-EndFunction
-;END FRAGMENT
-
-;BEGIN FRAGMENT Fragment_34
-Function Fragment_34()
-;BEGIN CODE
-;player died while incubating
-
-If svr_ReviveType.GetValue() == 2 ;Player chose Death
-    setStage(200)
-else
-playerRef.removespell(svr_damageHealthSpell)
-SleepyTimeFadeIn.applyCrossfade(10)
-utility.wait(5)
-playerRef.pushActorAway(PlayerRef,1)
-svr_daysPast.setValue(3.5);Paralyze the player. Simulate Death. Used by DebuffSpell
-;playerRef.DoCombatSpellApply(svr_DeathPacifySpell, playerRef);Calms all Aggression
-
-utility.wait(10)
-;PlayerRef.ForceRemoveRagdollFromWorld();Precaution for MoveTo
-alias_DeathLoc.TryTomoveto(playerRef) ;Used to allow manual reteleportation.
-svr_TP.setValue(1)
-setStage(110)     ;Revive options
-endIf
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -77,11 +58,10 @@ endIf
 
 playerRef.addspell(svr_playerDebuffSpell, false)
 
-;/
-if Alias_essentialPlayer.getActorRef() == Game.GetPlayer()
+
+if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug") && Alias_essentialPlayer.getActorRef() == Game.GetPlayer())
      debug.notification("Player is now essential")
 endIf
-/;
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -91,19 +71,6 @@ Function Fragment_38()
 ;BEGIN CODE
 ;Force allow Teleportation
 svr_TP.setValue(1)
-;END CODE
-EndFunction
-;END FRAGMENT
-
-;BEGIN FRAGMENT Fragment_32
-Function Fragment_32()
-;BEGIN CODE
-;Final Day of Vampirism. Day 3-Last 6 hours
-;debug.notification("stage 30 fragment")
-
-svr_dayspast.setvalue(2)
-playerRef.removeSpell(svr_playerDebuffSpell)
-playerRef.addspell(svr_playerDebuffSpell, false)
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -122,9 +89,24 @@ svr_MCMScript.RestartMQ()
 EndFunction
 ;END FRAGMENT
 
+;BEGIN FRAGMENT Fragment_37
+Function Fragment_37()
+;BEGIN CODE
+playerRef.removespell(svr_damageHealthSpell)
+playerRef.removeSpell(svr_playerDebuffSpell)
+svr_daysPast.setValue(0)
+alias_essentialPlayer.clear()
+;END CODE
+EndFunction
+;END FRAGMENT
+
 ;BEGIN FRAGMENT Fragment_35
 Function Fragment_35()
 ;BEGIN CODE
+if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug"))
+     debug.notification("Attempting Revival")
+endIf
+
 if svr_ReviveType.getValue() == -1
      svr_shrineSpawn.setValue(SVR_InitRespawnMSB.show())
 endIf
@@ -155,6 +137,7 @@ elseif svr_ReviveType.getValue() == 0 || svr_shrineSpawn.getValue() == 0 ;0 = Re
 endIf
 
 If svr_ReviveType.GetValue() != 2 || svr_shrineSpawn.getValue() != 2 
+     debug.notification("Attempting resurrection")
      playerRef.restoreav("health",100000);
      playerRef.DoCombatSpellApply(svr_DeathPacifySpell, playerRef);Calms all Aggression
      utility.wait(5)
@@ -168,11 +151,39 @@ EndFunction
 ;BEGIN FRAGMENT Fragment_31
 Function Fragment_31()
 ;BEGIN CODE
-;Second Day of Vampirism. Day 1-2
-;debug.notification("stage 20 fragment")
+if (SVR_MCMScript.getModSettingBool("bDebugMode:Debug"))
+     debug.notification("Second Day of Vampirism. Day 1-2")
+     debug.notification("stage 20 fragment")
+endIf
 
 svr_DaysPast.setValue(1.0)
 ;playerRef.addspell(svr_playerDebuffSpell, false)
+;END CODE
+EndFunction
+;END FRAGMENT
+
+;BEGIN FRAGMENT Fragment_34
+Function Fragment_34()
+;BEGIN CODE
+;player died while incubating
+;debug.notification("Death whlle incubating")
+
+If svr_ReviveType.GetValue() == 2 ;Player chose Death
+    setStage(200)
+else
+playerRef.removespell(svr_damageHealthSpell)
+SleepyTimeFadeIn.applyCrossfade(10)
+utility.wait(5)
+playerRef.pushActorAway(PlayerRef,1)
+svr_daysPast.setValue(3.5);Paralyze the player. Simulate Death. Used by DebuffSpell
+;playerRef.DoCombatSpellApply(svr_DeathPacifySpell, playerRef);Calms all Aggression
+
+utility.wait(10)
+;PlayerRef.ForceRemoveRagdollFromWorld();Precaution for MoveTo
+alias_DeathLoc.TryTomoveto(playerRef) ;Used to allow manual reteleportation.
+svr_TP.setValue(1)
+setStage(110)     ;Revive options
+endIf
 ;END CODE
 EndFunction
 ;END FRAGMENT
